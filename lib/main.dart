@@ -1,6 +1,8 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_designer/screen/home_screen.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_designer/screen/login_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,7 +21,9 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             title: 'Flutter Designer',
-            home: HomeScreen(),
+            home: (FirebaseAuth.instance.currentUser == null)
+                ? LoginScreen()
+                : HomeScreen(),
           );
         } else if (snapshot.hasError) {
           return MaterialApp(
