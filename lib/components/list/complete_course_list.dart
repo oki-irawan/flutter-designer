@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_designer/components/cards/complete_course_card.dart';
 import 'package:flutter_designer/models/course.dart';
@@ -13,11 +15,51 @@ class _CompleteCourseListState extends State<CompleteCourseList> {
   List<Container> indicators = [];
   int currentPage = 0;
 
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  var completedCourses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    getCompletedCourses();
+  }
+
+  void getCompletedCourses() {
+    _firestore
+        .collection('users')
+        .doc(_auth.currentUser?.uid)
+        .get()
+        .then((snapshot) {
+      for (var course in snapshot.data()?['completed']) {
+        _firestore
+            .collection('courses')
+            .doc(course)
+            .get()
+            .then((snapshotCourse) {
+          setState(() {
+            completedCourses.add(
+              Course(
+                courseTitle: snapshotCourse.data()?['courseTitle'],
+                courseSubtitle: snapshotCourse.data()?['courseSubtitle'],
+                background: LinearGradient(colors: [
+                  Color(int.parse(snapshotCourse.data()?['color'][0])),
+                  Color(int.parse(snapshotCourse.data()?['color'][1]))
+                ]),
+                illustration: snapshotCourse.data()?['illustration'],
+              ),
+            );
+          });
+        });
+      }
+    });
+  }
+
   Widget updateIndicator() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: completedCourses.map(
-            (course) {
+        (course) {
           var index = completedCourses.indexOf(course);
           return Container(
             width: 7.0,
@@ -28,7 +70,7 @@ class _CompleteCourseListState extends State<CompleteCourseList> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color:
-              currentPage == index ? Color(0xFF0971FE) : Color(0xFFA6AEBD),
+                  currentPage == index ? Color(0xFF0971FE) : Color(0xFFA6AEBD),
             ),
           );
         },

@@ -1,22 +1,76 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_designer/components/certificate_viewer.dart';
 import 'package:flutter_designer/components/list/complete_course_list.dart';
 import 'package:flutter_designer/constants/colors.dart';
 import 'package:flutter_designer/constants/typography.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   ProfileScreen({Key? key}) : super(key: key);
 
-  final List<String> badges = [
-    'badge-01.png',
-    'badge-02.png',
-    'badge-03.png',
-    'badge-04.png',
-  ];
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  var name = 'Loading.....';
+  var bio = 'Loading.....';
+  List badges = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadUserData();
+  }
+
+  void loadUserData() {
+    _firestore
+        .collection('users')
+        .doc(_auth.currentUser?.uid)
+        .get()
+        .then((snapshot) {
+      print(snapshot.data()?['badges']);
+      print(snapshot.data()?['badges'].runtimeType);
+      setState(() {
+        name = snapshot.data()?["name"];
+        bio = snapshot.data()?["bio"];
+        badges = snapshot.data()?['badges'];
+      });
+    });
+  }
+
+  void updateUserData() {
+    _firestore
+        .collection('users')
+        .doc(_auth.currentUser?.uid)
+        .update({'name': name, 'bio': bio}).then(
+          (value) {
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text('Success'),
+              content: Text('The profile data has been updated!'),
+              actions: [
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Ok!'),
+                )
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +112,7 @@ class ProfileScreen extends StatelessWidget {
                               Navigator.of(context).pop();
                             },
                             materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
+                            MaterialTapTargetSize.shrinkWrap,
                             constraints: BoxConstraints(
                               minHeight: 24.0,
                               maxHeight: 40.0,
@@ -80,26 +134,69 @@ class ProfileScreen extends StatelessWidget {
                             'Profile',
                             style: kTitle2Style,
                           ),
-                          Container(
-                            alignment: Alignment.center,
-                            height: 40.0,
-                            width: 40.0,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(14.0),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: kShadowColor,
-                                  offset: Offset(0, 12),
-                                  blurRadius: 32.0,
-                                )
-                              ],
-                            ),
-                            child: Icon(
-                              Platform.isAndroid
-                                  ? Icons.settings
-                                  : CupertinoIcons.settings_solid,
-                              color: kCourseElementIconColor,
+                          GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) {
+                                  return AlertDialog(
+                                    title: Text('Upgrade your profile'),
+                                    content: Column(
+                                      children: [
+                                        TextField(
+                                          onChanged: (newValue) {
+                                            setState(() {
+                                              name = newValue;
+                                            });
+                                          },
+                                          controller: TextEditingController(
+                                              text: name),
+                                        ),
+                                        TextField(
+                                          onChanged: (newValue) {
+                                            setState(() {
+                                              bio = newValue;
+                                            });
+                                          },
+                                          controller: TextEditingController(
+                                              text: bio),
+                                        ),
+                                      ],
+                                    ),
+                                    actions: [
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          updateUserData();
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: Text('Update'),
+                                      )
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                            child: Container(
+                              alignment: Alignment.center,
+                              height: 40.0,
+                              width: 40.0,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14.0),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: kShadowColor,
+                                    offset: Offset(0, 12),
+                                    blurRadius: 32.0,
+                                  )
+                                ],
+                              ),
+                              child: Icon(
+                                Platform.isAndroid
+                                    ? Icons.settings
+                                    : CupertinoIcons.settings_solid,
+                                color: kCourseElementIconColor,
+                              ),
                             ),
                           ),
                         ],
@@ -131,7 +228,7 @@ class ProfileScreen extends StatelessWidget {
                                 ),
                                 child: CircleAvatar(
                                   backgroundImage:
-                                      AssetImage('asset/images/profile.jpg'),
+                                  AssetImage('asset/images/profile.jpg'),
                                   radius: 30.0,
                                 ),
                               ),
@@ -142,14 +239,14 @@ class ProfileScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Ana De Armas',
+                                '${name}',
                                 style: kTitle2Style,
                               ),
                               SizedBox(
                                 height: 8.0,
                               ),
                               Text(
-                                'Actress',
+                                '${bio}',
                                 style: kSearchTextStyle,
                               ),
                             ],
